@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>App Access • Connected</title>
+<style>
+body{
+  margin:0;
+  font-family:system-ui,sans-serif;
+  background:#0b1220;
+  color:#e8eef6;
+  display:flex;
+  justify-content:center;
+  padding:16px;
+}
+.app{
+  width:100%;
+  max-width:480px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+/* Верхняя панель */
+.status{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:12px 16px;
+  background:linear-gradient(180deg,#0f1a2a 0%,#0d1726 100%);
+  border-radius:16px;
+  border:1px solid #1f2c45;
+}
+.online-container{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  background:rgba(34,197,94,0.1);
+  padding:6px 12px;
+  border-radius:12px;
+  font-weight:600;
+}
+.pulse{
+  width:10px;
+  height:10px;
+  border-radius:50%;
+  background:#16c47f;
+  animation:pulse 1.6s ease-out infinite;
+}
+@keyframes pulse{
+  0%{transform:scale(0.6);opacity:0.9}
+  80%{transform:scale(1.9);opacity:0}
+  100%{opacity:0}
+}
+.label{margin-right:4px;font-size:14px;}
+.count{font-size:14px;font-weight:700;}
+.connected{font-weight:600;font-size:14px;color:#9bd1b4;}
+
+/* Баннеры */
+.card,.cta{
+  border-radius:16px;
+  overflow:hidden;
+  border:1px solid #1f2c45;
+}
+.card img,.cta img{width:100%;display:block;border-radius:16px;}
+.cta .hint{padding:6px 12px;font-size:13px;color:#96a0b5;text-align:center;}
+
+/* Тикер последних выигрышей */
+.ticker{
+  background:linear-gradient(180deg,#0e1828 0%,#0b1321 100%);
+  border-radius:16px;
+  border:1px solid #1f2c45;
+  overflow:hidden;
+}
+.ticker-header{
+  padding:10px 14px;
+  border-bottom:1px solid rgba(255,255,255,.08);
+  font-weight:700;
+  font-size:14px;
+}
+.ticker-body{
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  height:220px;
+}
+.row{
+  display:flex;
+  justify-content:space-between;
+  padding:10px 14px;
+  border-bottom:1px dashed rgba(255,255,255,.06);
+  font-size:14px;
+  opacity:0;
+  transform:translateY(-20px);
+  transition:all 0.5s ease;
+}
+.row.show{
+  opacity:1;
+  transform:translateY(0);
+}
+.row.hide{
+  opacity:0;
+  height:0;
+  padding:0;
+  margin:0;
+}
+/* Стили для ID и суммы */
+.id{color:#b3c0d8;}
+.win{color:#22c55e;font-weight:700;} /* <--- зеленый цвет для суммы выигрыша */
+
+/* Мобильная адаптация */
+@media(max-width:480px){
+  .status{padding:10px 12px;}
+  .label,.count{font-size:13px;}
+  .ticker-header{padding:8px 10px;font-size:13px;}
+  .row{padding:8px 10px;font-size:13px;}
+  .cta .hint{font-size:12px;padding:4px 8px;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Верхняя панель -->
+  <div class="status">
+    <div class="online-container">
+      <div class="label">Online</div>
+      <div class="pulse"></div>
+      <div class="count" id="onlineCount">—</div>
+    </div>
+    <div class="connected">Connected</div>
+  </div>
+
+  <!-- Баннер -->
+  <div class="card">
+    <img src="werh.jpg" alt="Баннер">
+  </div>
+
+  <!-- Кликабельная картинка -->
+  <div class="cta">
+    <a href="slot/index.html" id="gameLink" target="_blank" rel="noopener">
+      <img src="click.jpg" alt="Играть">
+    </a>
+    <div class="hint">Нажмите на баннер, чтобы перейти в игру</div>
+  </div>
+
+  <!-- Тикер последних выигрышей -->
+  <div class="ticker">
+    <div class="ticker-header">Последние выигрыши игроков</div>
+    <div class="ticker-body" id="tickerBody"></div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+
+  // ONLINE
+  const onlineEl=document.getElementById('onlineCount');
+  let currentOnline=Math.floor(85+Math.random()*150);
+  let targetOnline=currentOnline;
+
+  function updateTarget(){
+    targetOnline=currentOnline + Math.floor(Math.random()*11-5);
+    if(targetOnline<85) targetOnline=85;
+    if(targetOnline>235) targetOnline=235;
+  }
+  setInterval(updateTarget, 13000 + Math.random()*2000);
+  setInterval(()=>{
+    if(currentOnline<targetOnline) currentOnline++;
+    else if(currentOnline>targetOnline) currentOnline--;
+    onlineEl.textContent=currentOnline;
+  },700);
+
+  // WINNERS TICKER
+  const tickerBody=document.getElementById('tickerBody');
+
+  function randInt(min,max){return Math.floor(Math.random()*(max-min+1)+min);}
+  function formatMoney(v){let p=v.toFixed(2).split('.'); return p[0].replace(/\B(?=(\d{3})+(?!\d))/g,' ')+','+p[1];}
+
+  function generateRow(){
+    const idVisible=randInt(1000,9999);
+    const idMasked=`ID ${idVisible}****`;
+    const isRub=Math.random()<0.5;
+    let amount,text;
+    if(isRub){amount=randInt(35000,290000)+Math.random(); text=formatMoney(amount)+' ₽';}
+    else{amount=randInt(370,2700)+Math.random(); text=formatMoney(amount)+' $';}
+    return {idMasked,text};
+  }
+
+  function addRow(){
+    const rowData=generateRow();
+    const row=document.createElement('div');
+    row.className='row';
+    const idDiv=document.createElement('div'); idDiv.className='id'; idDiv.textContent=rowData.idMasked;
+    const winDiv=document.createElement('div'); winDiv.className='win'; winDiv.textContent=rowData.text;
+    row.append(idDiv,winDiv);
+    tickerBody.prepend(row);
+    // Показ с анимацией
+    setTimeout(()=>row.classList.add('show'),50);
+
+    // Удаление лишних строк
+    const rows=tickerBody.querySelectorAll('.row');
+    if(rows.length>5){
+      const last=rows[rows.length-1];
+      last.classList.add('hide');
+      last.addEventListener('transitionend',()=>last.remove(),{once:true});
+    }
+  }
+
+  // Инициализация 5 строк
+  for(let i=0;i<5;i++) addRow();
+
+  // Добавление новых каждые 8-10 секунд
+  function scheduleNext(){
+    const delay=8000 + Math.random()*2000;
+    setTimeout(()=>{
+      addRow();
+      scheduleNext();
+    },delay);
+  }
+  scheduleNext();
+
+});
+</script>
+</body>
+</html>
+
